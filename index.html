@@ -6,17 +6,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     html, body { height:100%; margin:0; background:#000; }
-    .wrap { position:fixed; inset:0; }
-    .wrap iframe { width:100%; height:100%; border:0; display:block; }
+    #heygen-streaming-embed { position:fixed; inset:0; z-index:1; border:0; border-radius:0; overflow:hidden; }
+    #heygen-streaming-container, #heygen-streaming-container iframe { width:100%; height:100%; border:0; }
+    /* show instantly */
+    #heygen-streaming-embed.show { opacity:1; visibility:visible; }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <iframe
-      src="https://labs.heygen.com/guest/streaming-embed?share=eyJxdWFsaXR5IjoiaGlnaCIsImF2YXRhck5hbWUiOiJlMzA1NDViNDgwNGM0YzhmYTM4NDg3YjViZTJkNmQ1YyIsInByZXZpZXdfdGFyZ2V0LndlYnAiLCJuZWVkUmVtb3ZlQmFja2dyb3VuZCI6ZmFsc2UsImtub3dsZWRnZUJhc2VJZCI6IjU4MTYwMTJjY2FkMDQ5Zjk4OGViYTdhNzFjN2Q0Y2YyIiwic2hhcmVfY29kZSI6ImEwZWM3NDMzLWVlZjYtNGJjNy1iMzZiLTYxYmMxNGExM2YzMCIsInVzZXJuYW1lIjoiZTUxZWZmM2YyYWMwNGRmY2I0NzBkMzZjNjlkYjFjZTYifQ==&inIFrame=1"
-      allow="microphone; autoplay; encrypted-media; clipboard-write"
-      title="BCM AI Avatar">
-    </iframe>
-  </div>
+  <script>
+  // Use HeyGen's loader (same approach as your working floating bot)
+  !function(window){
+    const host = "https://labs.heygen.com";
+    const url  = host + "/guest/streaming-embed?share=eyJxdWFsaXR5IjoiaGlnaCIsImF2YXRhck5hbWUiOiJlMzA1NDViNDgwNGM0YzhmYTM4NDg3YjViZTJkNmQ1YyIsInByZXZpZXdfdGFyZ2V0LndlYnAiLCJuZWVkUmVtb3ZlQmFja2dyb3VuZCI6ZmFsc2UsImtub3dsZWRnZUJhc2VJZCI6IjU4MTYwMTJjY2FkMDQ5Zjk4OGViYTdhNzFjN2Q0Y2YyIiwic2hhcmVfY29kZSI6ImEwZWM3NDMzLWVlZjYtNGJjNy1iMzZiLTYxYmMxNGExM2YzMCIsInVzZXJuYW1lIjoiZTUxZWZmM2YyYWMwNGRmY2I0NzBkMzZjNjlkYjFjZTYifQ==&inIFrame=1";
+
+    const wrap = document.createElement("div");
+    wrap.id = "heygen-streaming-embed";
+    wrap.className = "show";
+
+    const container = document.createElement("div");
+    container.id = "heygen-streaming-container";
+
+    const iframe = document.createElement("iframe");
+    iframe.src   = url;
+    iframe.title = "BCM AI Avatar";
+    iframe.allow = "camera; microphone; autoplay; encrypted-media; fullscreen; clipboard-write";
+    iframe.setAttribute("allowfullscreen", "");
+
+    container.appendChild(iframe);
+    wrap.appendChild(container);
+    document.body.appendChild(wrap);
+
+    // optional: listen for init
+    window.addEventListener("message", (e)=>{
+      if (e.origin!==host || !e.data || e.data.type!=="streaming-embed") return;
+      // e.data.action === 'init' | 'show' | 'hide'
+    });
+  }(globalThis);
+  </script>
 </body>
 </html>
