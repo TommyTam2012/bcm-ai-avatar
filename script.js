@@ -5,6 +5,8 @@
    - Exposes window.BCM{...}
    =========================== */
 
+console.log("[BCM] bridge loaded");
+
 /** ========= CONFIG ========= **/
 let API_BASE = "https://bcm-demo.onrender.com";   // change if needed
 let ADMIN_KEY = undefined;                         // set via BCM.setAdminKey()
@@ -15,11 +17,8 @@ const DEFAULT_TIMEOUT_MS = 12000;
 function withTimeout(ms, signal) {
   const ctrl = new AbortController();
   const id = setTimeout(() => ctrl.abort(new Error("Timeout")), ms);
-  const combined = signal
-    ? new AbortController()
-    : null;
+  const combined = signal ? new AbortController() : null;
 
-  // If a signal is provided, abort when it aborts
   if (signal && combined) {
     const onAbort = () => combined.abort(signal.reason || new Error("Aborted"));
     signal.addEventListener("abort", onAbort, { once: true });
@@ -47,9 +46,7 @@ async function httpGet(path, { timeout = DEFAULT_TIMEOUT_MS, headers = {} } = {}
     } else {
       data = await res.text();
     }
-    if (!res.ok) {
-      throw new Error(`GET ${path} -> ${res.status} ${res.statusText}`);
-    }
+    if (!res.ok) throw new Error(`GET ${path} -> ${res.status} ${res.statusText}`);
     return { ok: true, data };
   } catch (err) {
     return { ok: false, error: err.message || String(err) };
@@ -74,9 +71,7 @@ async function httpPost(path, body, { timeout = DEFAULT_TIMEOUT_MS, headers = {}
     } else {
       data = await res.text();
     }
-    if (!res.ok) {
-      throw new Error(`POST ${path} -> ${res.status} ${res.statusText}`);
-    }
+    if (!res.ok) throw new Error(`POST ${path} -> ${res.status} ${res.statusText}`);
     return { ok: true, data };
   } catch (err) {
     return { ok: false, error: err.message || String(err) };
@@ -87,24 +82,19 @@ async function httpPost(path, body, { timeout = DEFAULT_TIMEOUT_MS, headers = {}
 
 /** ====== TEXT HELPERS ====== **/
 function coursesToText(data) {
-  // expected: { courses: [ { summary: "...", ... } ] }
   if (!data || !Array.isArray(data.courses)) return "No courses available at the moment.";
   const lines = data.courses.map(c => c.summary || JSON.stringify(c));
   return lines.length ? lines.join("\n") : "No courses available at the moment.";
 }
 
 function faqsToText(data) {
-  // expected: [ { question, answer } ]
   if (!Array.isArray(data) || !data.length) return "No FAQs available right now.";
   return data.map(f => `${f.question}: ${f.answer}`).join("\n");
 }
 
 function enrollmentsToText(data) {
-  // expected: [ { full_name, program_code, created_at } ]
   if (!Array.isArray(data) || !data.length) return "No recent enrollments.";
-  return data
-    .map(e => `${e.full_name} enrolled in ${e.program_code || "a course"} on ${e.created_at}`)
-    .join("\n");
+  return data.map(e => `${e.full_name} enrolled in ${e.program_code || "a course"} on ${e.created_at}`).join("\n");
 }
 
 /** ===== PUBLIC API (STRUCTURED) ===== **/
@@ -119,7 +109,6 @@ async function fetchFaqs() {
 }
 
 async function fetchRecentEnrollments(limit = 10, source) {
-  // Admin-only endpoint; only attach header if ADMIN_KEY is set at runtime
   const headers = {};
   if (ADMIN_KEY) headers["X-Admin-Key"] = ADMIN_KEY;
 
@@ -133,7 +122,6 @@ async function fetchRecentEnrollments(limit = 10, source) {
 }
 
 async function createEnrollment(payload) {
-  // payload: { full_name, email, phone, course_id, source }
   const res = await httpPost("/enroll", payload);
   return res.ok ? res : { ok: false, error: "Unable to create enrollment. Please try again." };
 }
@@ -163,17 +151,9 @@ async function fetchRecentEnrollmentsText(limit = 10, source) {
 
 /** ===== FALLBACK CHAT/ROUTER ===== **/
 async function askBackend(utterance) {
-  // Tiny keyword router; customize as you like (HeyGen can call this)
   const u = String(utterance || "").toLowerCase();
-  if (u.includes("course")) {
-    const t = await fetchCoursesText();
-    return { ok: true, data: t };
-  }
-  if (u.includes("faq")) {
-    const t = await fetchFaqsText();
-    return { ok: true, data: t };
-  }
-  // Fallback to /chat if present on backend
+  if (u.includes("course")) return { ok: true, data: await fetchCoursesText() };
+  if (u.includes("faq"))    return { ok: true, data: await fetchFaqsText() };
   const res = await httpPost("/chat", { message: utterance });
   if (!res.ok) return { ok: false, error: "Chat service is unavailable." };
   return res;
@@ -181,12 +161,10 @@ async function askBackend(utterance) {
 
 /** ===== EXPOSE TO WINDOW ===== **/
 window.BCM = {
-  // config
   setApiBase: (url) => { API_BASE = String(url || API_BASE); },
   getApiBase: () => API_BASE,
   setAdminKey: (key) => { ADMIN_KEY = key || undefined; },
 
-  // structured
   fetchCourses,
   fetchFaqs,
   fetchRecentEnrollments,
@@ -194,14 +172,8 @@ window.BCM = {
   pingHealth,
   askBackend,
 
-  // human-readable
   fetchCoursesText,
   fetchFaqsText,
   fetchRecentEnrollmentsText
 };
-
-/** ===== OPTIONAL: QUICK SELF-TEST LOGS (remove if noisy) ===== **/
-// window.addEventListener("DOMContentLoaded", async () => {
-//   console.log("[BCM] API_BASE:", API_BASE);
-//   console.log("[BCM] health:", await pingHealth());
-// });
+console.log("[BCM] bridge ready", typeof window.BCM);
